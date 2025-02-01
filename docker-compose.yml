@@ -1,0 +1,10 @@
+services:
+  ibs-care-api:
+    image: ghcr.io/limogiai/ibs-care-api:v1.0.0
+    container_name: ibs-care-api
+    ports:
+      - "4433:4433"  # Maps host port(left) 4433 to container port 4433(right)
+    environment:
+      - NODE_ENV=production
+      - PORT=4433
+    restart: unless-stopped
