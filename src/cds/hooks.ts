@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import logger from '../utils/logger';
+import { predictIBSRisk } from '../utils/openaiClient';
 
 export const hooksRouter = new Hono();
 
@@ -11,54 +12,109 @@ hooksRouter.post('/:id', async (c) => {
     serviceId: id,
     body,
   });
-
+  logger.info({
+    serviceId: id,
+    body,
+  }, 'Received CDS Hook Request:');
   try {
-    // Validate the request
+    // Basic required fields validation
     if (!body.hook || !body.hookInstance || !body.context || !body.prefetch) {
       return c.json({ error: 'Invalid request: Missing required fields' }, 400);
     }
 
-    const { patient, conditions, medications, allergies } = body.prefetch;
+    // Branch based on service ID
+    if (id === 'ibs-risk-assessment') {
 
-    // Validate prefetch data
-    if (!patient || !patient.resourceType || patient.resourceType !== 'Patient') {
-      return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
-    }
+      // For IBS Risk Assessment, expect patient data under "patientData"
+      const fhirData = body.prefetch.patientData;
+      logger.info({ fhirData })
+      if (!fhirData) {
+        return c.json({ error: 'Invalid prefetch data: Missing patientData' }, 400);
+      }
 
-    if (!conditions || !conditions.resourceType || conditions.resourceType !== 'Bundle') {
-      return c.json({ error: 'Invalid prefetch data: Conditions resource missing or invalid' }, 400);
-    }
+      // Optionally, you can validate that fhirData.resourceType is "Patient" if that’s required.
+      if (!fhirData.resourceType || fhirData.resourceType !== 'Patient') {
+        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid in patientData' }, 400);
+      }
+      // Call the OpenAI prediction module
+      logger.info('Check Point: PRE OpenAI')
+      const { riskScore, recommendations } = await predictIBSRisk(fhirData);
+      logger.info('Check Point: POST OpenAI')
 
-    if (!medications || !medications.resourceType || medications.resourceType !== 'Bundle') {
-      return c.json({ error: 'Invalid prefetch data: Medications resource missing or invalid' }, 400);
-    }
+      // Build the CDS Card for IBS Risk Assessment
+      const card = {
+        summary: `IBS Risk Score: ${riskScore}%`,
+        indicator: riskScore >= 70 ? 'warning' : 'info',
+        detail: riskScore >= 70
+          ? `High probability of IBS. Recommended next steps: ${recommendations.join('; ')}.`
+          : `Low risk of IBS.`,
+        source: {
+          label: 'IBS Clinical Decision Support',
+          url: 'https://your-app-url.example.com',
+          icon: 'https://your-app-url.example.com/icon.png',
+        },
+        suggestions: [
+          {
+            label: 'View More',
+            actions: [
+              // {
+              //   type: 'create',
+              //   description: 'Launch detailed IBS analysis.',
+              //   resource: {
+              //     resourceType: 'LaunchRequest',
+              //     // Additional parameters can be provided here
+              //   },
+              // },
+            ],
+          },
+        ],
+      };
 
-    if (!allergies || !allergies.resourceType || allergies.resourceType !== 'Bundle') {
-      return c.json({ error: 'Invalid prefetch data: Allergies resource missing or invalid' }, 400);
-    }
-    // Handle different services based on the ID
-    if (id === 'patient-greeter') {
-      // Extract patient name
+      logger.info({ card }, 'Sending IBS Risk Assessment CDS Card:');
+      return c.json({ cards: [card] });
+
+
+
+    } else if (id === 'patient-greeter') {
+      // For patient-greeter, validate and extract required prefetch resources
+      const { patient, conditions, medications, allergies } = body.prefetch;
+
+      if (!patient || !patient.resourceType || patient.resourceType !== 'Patient') {
+        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
+      }
+      if (!conditions || !conditions.resourceType || conditions.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Conditions resource missing or invalid' }, 400);
+      }
+      if (!medications || !medications.resourceType || medications.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Medications resource missing or invalid' }, 400);
+      }
+      if (!allergies || !allergies.resourceType || allergies.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Allergies resource missing or invalid' }, 400);
+      }
+
+      // Extract patient details
       const firstName = patient.name?.[0]?.given?.[0] || 'Patient';
       const lastName = patient.name?.[0]?.family || '';
 
       // Extract conditions
-      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text).filter(Boolean) || [];
+      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text)
+        .filter(Boolean) || [];
 
       // Extract medications
-      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text).filter(Boolean) || [];
+      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text)
+        .filter(Boolean) || [];
 
       // Extract allergies
-      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text).filter(Boolean) || [];
+      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text)
+        .filter(Boolean) || [];
 
-      // Define a common source object
+      // Define common source, suggestions, and links
       const commonSource = {
         label: 'Patient Greeter Service',
         url: 'https://example.com',
         icon: 'https://example.com/icon.png',
       };
 
-      // Define common suggestions and links
       const commonSuggestions = [
         {
           label: 'View Patient History',
@@ -69,12 +125,8 @@ hooksRouter.post('/:id', async (c) => {
               resource: {
                 resourceType: 'DiagnosticReport',
                 status: 'final',
-                code: {
-                  text: 'Patient History',
-                },
-                subject: {
-                  reference: `Patient/${body.context.patientId}`,
-                },
+                code: { text: 'Patient History' },
+                subject: { reference: `Patient/${body.context.patientId}` },
               },
             },
           ],
@@ -82,19 +134,10 @@ hooksRouter.post('/:id', async (c) => {
       ];
 
       const commonLinks = [
-        {
-          label: 'Google',
-          url: 'https://google.com',
-          type: 'absolute',
-        },
-        {
-          label: 'Launch Pnemocia Diagnosis App',
-          url: 'http://localhost:4434/launch',
-          type: 'smart',
-        },
+        { label: 'Google', url: 'https://google.com', type: 'absolute' },
+        { label: 'Launch Pnemocia Diagnosis App', url: 'http://localhost:4434/launch', type: 'smart' },
       ];
 
-      // Build dynamic content for cards
       const cards = [
         {
           summary: `Dai, ${firstName} ${lastName}`,
@@ -106,7 +149,6 @@ hooksRouter.post('/:id', async (c) => {
         },
       ];
 
-      // Add a card for active conditions
       if (activeConditions.length > 0) {
         cards.push({
           summary: 'Active Conditions',
@@ -122,7 +164,6 @@ hooksRouter.post('/:id', async (c) => {
         });
       }
 
-      // Add a card for active medications
       if (activeMedications.length > 0) {
         cards.push({
           summary: 'Active Medications',
@@ -138,7 +179,6 @@ hooksRouter.post('/:id', async (c) => {
         });
       }
 
-      // Add a card for allergies
       if (patientAllergies.length > 0) {
         cards.push({
           summary: 'Allergies',
@@ -154,38 +194,56 @@ hooksRouter.post('/:id', async (c) => {
         });
       }
 
-      logger.info('Sending CDS Hook Response:', { cards });
+      logger.info({ cards }, 'Sending CDS Hook Response:');
       return c.json({ cards });
+
     } else if (id === 'clinical-recommendations') {
-      // Logic for clinical-recommendations service
-      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text).filter(Boolean) || [];
-      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text).filter(Boolean) || [];
-      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text).filter(Boolean) || [];
+      // Validate and extract required prefetch data for clinical recommendations
+      const { patient, conditions, medications, allergies } = body.prefetch;
+
+      if (!patient || !patient.resourceType || patient.resourceType !== 'Patient') {
+        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
+      }
+      if (!conditions || !conditions.resourceType || conditions.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Conditions resource missing or invalid' }, 400);
+      }
+      if (!medications || !medications.resourceType || medications.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Medications resource missing or invalid' }, 400);
+      }
+      if (!allergies || !allergies.resourceType || allergies.resourceType !== 'Bundle') {
+        return c.json({ error: 'Invalid prefetch data: Allergies resource missing or invalid' }, 400);
+      }
+
+      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text)
+        .filter(Boolean) || [];
+      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text)
+        .filter(Boolean) || [];
+      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text)
+        .filter(Boolean) || [];
 
       const response = {
-          cards: [
-              {
-                  summary: 'Clinical Recommendations',
-                  indicator: 'info',
-                  detail: `The patient has the following active conditions: ${activeConditions.join(', ')}.`,
-                  source: {
-                      label: 'Clinical Recommendations Service',
-                      url: 'https://example.com/clinical',
-                      icon: 'https://example.com/clinical-icon.png',
-                  },
-                  suggestions: [],
-                  links: [],
-              },
-          ],
+        cards: [
+          {
+            summary: 'Clinical Recommendations',
+            indicator: 'info',
+            detail: `The patient has the following active conditions: ${activeConditions.join(', ')}.`,
+            source: {
+              label: 'Clinical Recommendations Service',
+              url: 'https://example.com/clinical',
+              icon: 'https://example.com/clinical-icon.png',
+            },
+            suggestions: [],
+            links: [],
+          },
+        ],
       };
 
       return c.json(response);
-  } else {
+    } else {
       return c.json({ error: 'Service not found' }, 404);
     }
-
   } catch (error) {
-    logger.error('Error in hook route:', error);
+    logger.error({ error }, 'Error in hook route:');
     return c.json({ error: 'Internal Server Error' }, 500);
   }
 });
