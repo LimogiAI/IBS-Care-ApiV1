@@ -1,2 +1,34 @@
-# deps
+# Node modules
 node_modules/
+
+# Bun lock file
+bun.lockb
+
+# Environment files
+.env
+!.env.example
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+dist/
+build/
+
+# Operating System files
+.DS_Store
+
+# IDE / Editor settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Temporary files
+tmp/
+temp/
