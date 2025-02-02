@@ -3,7 +3,7 @@ name: 🚀 Build and Push Docker Image
 on:
   push:
     branches:
-      - main  # Trigger the workflow on pushes to the main branch
+      - main
 
 jobs:
   build-and-push:
@@ -21,7 +21,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: 🐳 Build and Push Docker Image
         uses: docker/build-push-action@v4
