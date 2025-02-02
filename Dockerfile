@@ -12,12 +12,12 @@ WORKDIR /app
 # Copy project files
 COPY package.json bun.lockb tsconfig.json ./
 COPY src ./src
-COPY .env .env
+
 
 # Install dependencies
 RUN bun install --production
 
-# Expose the port defined in the .env file (default 4433)
+# Expose the port defined in the container (4433 by default)
 EXPOSE 4433
 
 # Start the server

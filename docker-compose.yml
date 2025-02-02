@@ -1,10 +1,11 @@
 services:
   ibs-care-api:
-    image: ghcr.io/limogiai/ibs-care-api:v1.0.0
+    image: ghcr.io/limogiai/ibs-care-api:latest
     container_name: ibs-care-api
     ports:
-      - "4433:4433"  # Maps host port(left) 4433 to container port 4433(right)
+      - "4433:4433"  # Maps host port 4433 to container port 4433
     environment:
-      - NODE_ENV=production
-      - PORT=4433
+      NODE_ENV: production
+      PORT: 4433
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     restart: unless-stopped
