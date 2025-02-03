@@ -41,6 +41,19 @@ hooksRouter.post('/:id', async (c) => {
       const { riskScore, recommendations } = await predictIBSRisk(fhirData);
       logger.info('Check Point: POST OpenAI')
 
+      const commonLinks = [
+        {
+          label: 'Google',
+          url: 'https://google.com',
+          type: 'absolute',
+        },
+        {
+          label: 'Launch pnemonia Diagnosis App',
+          url: 'https://ibscare-app.limogi.ai/launch',
+          type: 'smart',
+        },
+      ];
+
       // Build the CDS Card for IBS Risk Assessment
       const card = {
         summary: `IBS Risk Score: ${riskScore}%`,
@@ -68,6 +81,7 @@ hooksRouter.post('/:id', async (c) => {
             ],
           },
         ],
+        links: commonLinks,
       };
 
       logger.info({ card }, 'Sending IBS Risk Assessment CDS Card:');
