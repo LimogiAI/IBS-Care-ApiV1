@@ -1,3 +1,4 @@
+// src/cds/discovery.ts
 import { Hono } from 'hono';
 import logger from '../utils/logger';
 
@@ -8,38 +9,25 @@ discoveryRouter.get('/', (c) => {
         const services = [
             {
                 hook: 'patient-view',
-                title: 'Patient Greeter Service',
-                description: 'Greets the patient and provides recommendations based on their data.',
-                id: 'patient-greeter',
-                prefetch: {
-                    patient: "Patient/{{context.patientId}}",
-                    conditions: "Condition?patient={{context.patientId}}&category=problem-list-item",
-                    medications: "MedicationRequest?patient={{context.patientId}}&status=active",
-                    allergies: "AllergyIntolerance?patient={{context.patientId}}"
-                },
-            },
-            {
-                hook: 'patient-view',
-                title: 'Clinical Recommendations Service',
-                description: 'Provides clinical recommendations based on patient data.',
-                id: 'clinical-recommendations',
-                prefetch: {
-                    patient: "Patient/{{context.patientId}}",
-                    conditions: "Condition?patient={{context.patientId}}&category=problem-list-item",
-                    medications: "MedicationRequest?patient={{context.patientId}}&status=active",
-                    allergies: "AllergyIntolerance?patient={{context.patientId}}"
-                },
-            },
-            {
-                hook: 'patient-view',
                 title: 'IBS Risk Assessment Service',
-                description: 'Evaluates the risk of Irritable Bowel Syndrome (IBS) using patient data and AI predictions.',
+                description: 'Evaluates IBS risk using ROME IV criteria and IBS-SSS scoring system with AI-assisted analysis.',
                 id: 'ibs-risk-assessment',
                 prefetch: {
-                    // Adjust the prefetch parameters based on the FHIR data needed for IBS risk analysis.
                     patientData: "Patient/{{context.patientId}}",
-                    // You might also include other FHIR resources relevant to IBS, like lab results or observations:
-                    observations: "Observation?patient={{context.patientId}}&code=IBS_related_code"
+                    // IBS and Related Conditions
+                    conditions: "Condition?patient={{context.patientId}}&code=K58.0,K58.1,K58.2,K58.8,K58.9,K59.0,K59.1,R10.0,R10.1,R10.2,R10.3,R10.4,R14.0,R14.1,R14.2,R19.4,F45.8",
+                    // Relevant Observations including BSS and symptoms
+                    observations: "Observation?patient={{context.patientId}}&code=74453004,405729008,62315008,422587007,422400008,398033008,70153002",
+                    // Medications for IBS and related conditions
+                    medications: "MedicationRequest?patient={{context.patientId}}&category=IBS,antispasmodic,antidiarrheal,laxative",
+                    // Procedures including colonoscopy, endoscopy
+                    procedures: "Procedure?patient={{context.patientId}}&code=73761001,235714003",
+                    // Allergies that might affect IBS
+                    allergies: "AllergyIntolerance?patient={{context.patientId}}",
+                    // ROME IV questionnaire responses
+                    questionnaire: "QuestionnaireResponse?patient={{context.patientId}}&questionnaire=ROME_IV_IBS,IBS_SSS",
+                    // Clinical impressions
+                    clinicalImpression: "ClinicalImpression?patient={{context.patientId}}"
                 },
             },
         ];

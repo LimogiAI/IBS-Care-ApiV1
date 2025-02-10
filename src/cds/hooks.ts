@@ -1,6 +1,9 @@
+// src/cds/hooks.ts
 import { Hono } from 'hono';
 import logger from '../utils/logger';
+import { IBSAssessment } from '../types/ibs';
 import { predictIBSRisk } from '../utils/openaiClient';
+
 
 export const hooksRouter = new Hono();
 
@@ -8,254 +11,132 @@ hooksRouter.post('/:id', async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
 
-  logger.info('Received CDS Hook Request:', {
-    serviceId: id,
-    body,
-  });
-  logger.info({
-    serviceId: id,
-    body,
-  }, 'Received CDS Hook Request:');
+  logger.info({ serviceId: id, body }, 'Received CDS Hook Request:');
+
   try {
-    // Basic required fields validation
+    // Validation checks
     if (!body.hook || !body.hookInstance || !body.context || !body.prefetch) {
       return c.json({ error: 'Invalid request: Missing required fields' }, 400);
     }
 
-    // Branch based on service ID
-    if (id === 'ibs-risk-assessment') {
+    if (id !== 'ibs-risk-assessment') {
+      return c.json({ error: 'Service not found' }, 404);
+    }
 
-      // For IBS Risk Assessment, expect patient data under "patientData"
-      const fhirData = body.prefetch.patientData;
-      logger.info({ fhirData })
-      if (!fhirData) {
-        return c.json({ error: 'Invalid prefetch data: Missing patientData' }, 400);
-      }
+    const {
+      patientData,
+      conditions,
+      observations,
+      medications,
+      procedures,
+      questionnaire
+    } = body.prefetch;
 
-      // Optionally, you can validate that fhirData.resourceType is "Patient" if that’s required.
-      if (!fhirData.resourceType || fhirData.resourceType !== 'Patient') {
-        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid in patientData' }, 400);
-      }
-      // Call the OpenAI prediction module
-      logger.info('Check Point: PRE OpenAI')
-      const { riskScore, recommendations } = await predictIBSRisk(fhirData);
-      logger.info('Check Point: POST OpenAI')
+    if (!patientData || patientData.resourceType !== 'Patient') {
+      return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
+    }
 
-      const commonLinks = [
-        {
-          label: 'Google',
-          url: 'https://google.com',
-          type: 'absolute',
-        },
-        {
-          label: 'Launch pnemonia Diagnosis App',
-          url: 'https://ibscare-app.limogi.ai/launch',
-          type: 'smart',
-        },
-      ];
+    const assessment: IBSAssessment = await predictIBSRisk({
+      patient: patientData,
+      conditions,
+      observations,
+      medications,
+      procedures,
+      questionnaire
+    });
 
-      // Build the CDS Card for IBS Risk Assessment
-      const card = {
-        summary: `IBS Risk Score: ${riskScore}%`,
-        indicator: riskScore >= 70 ? 'warning' : 'info',
-        detail: riskScore >= 70
-          ? `High probability of IBS. Recommended next steps: ${recommendations.join('; ')}.`
-          : `Low risk of IBS.`,
+    const severityLevel = assessment.ibsSSS.totalScore > 300 ? 'severe' :
+      assessment.ibsSSS.totalScore > 175 ? 'moderate' : 'mild';
+
+    const cards = [];
+
+    // Main Assessment Card - content varies by severity
+    if (severityLevel === 'mild' && !assessment.romeIVCriteriaMet) {
+      // Simple card for low risk/mild cases
+      cards.push({
+        summary: 'IBS Assessment: Low Risk',
+        indicator: 'info',
+        detail: `Based on the current assessment, there are no significant indicators of IBS. 
+                        The patient's symptoms do not meet the ROME IV criteria for IBS diagnosis.
+                        
+                        Total Symptom Score: ${assessment.ibsSSS.totalScore}/500 (Mild)`,
         source: {
           label: 'IBS Clinical Decision Support',
-          url: 'https://your-app-url.example.com',
-          icon: 'https://your-app-url.example.com/icon.png',
+          url: 'https://ibscare.limogi.ai',
+          icon: 'https://ibscare.limogi.ai/icon.png',
+        }
+      });
+    } else {
+      // Detailed card for moderate/severe cases
+      cards.push({
+        summary: `IBS Assessment: ${severityLevel.toUpperCase()}`,
+        indicator: severityLevel === 'severe' ? 'critical' : 'warning',
+        detail: `
+ROME IV Criteria: ${assessment.romeIVCriteriaMet ? 'Met' : 'Not Met'}
+IBS Subtype: ${assessment.ibsSubtype || 'Unclassified'}
+IBS-SSS Score: ${assessment.ibsSSS.totalScore}/500 (${severityLevel.charAt(0).toUpperCase() + severityLevel.slice(1)})
+
+Symptom Breakdown:
+• Abdominal Pain Severity: ${assessment.ibsSSS.abdominalPainSeverity}/100
+• Pain Frequency: ${assessment.ibsSSS.abdominalPainFrequency}/100
+• Bloating Severity: ${assessment.ibsSSS.bloatingSeverity}/100
+• Bowel Habit Dissatisfaction: ${assessment.ibsSSS.bowelHabitDissatisfaction}/100
+• Life Interference: ${assessment.ibsSSS.lifeInterference}/100
+
+${assessment.bristolStoolScale ? `Bristol Stool Scale: Type ${assessment.bristolStoolScale}` : ''}
+                `.trim(),
+        source: {
+          label: 'IBS Clinical Decision Support',
+          url: 'https://ibscare.limogi.ai',
+          icon: 'https://ibscare.limogi.ai/icon.png',
         },
         suggestions: [
           {
-            label: 'View More',
-            actions: [
-              // {
-              //   type: 'create',
-              //   description: 'Launch detailed IBS analysis.',
-              //   resource: {
-              //     resourceType: 'LaunchRequest',
-              //     // Additional parameters can be provided here
-              //   },
-              // },
-            ],
-          },
+            label: 'Treatment Recommendations',
+            actions: []
+          }
         ],
-        links: commonLinks,
-      };
-
-      logger.info({ card }, 'Sending IBS Risk Assessment CDS Card:');
-      return c.json({ cards: [card] });
-
-
-
-    } else if (id === 'patient-greeter') {
-      // For patient-greeter, validate and extract required prefetch resources
-      const { patient, conditions, medications, allergies } = body.prefetch;
-
-      if (!patient || !patient.resourceType || patient.resourceType !== 'Patient') {
-        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
-      }
-      if (!conditions || !conditions.resourceType || conditions.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Conditions resource missing or invalid' }, 400);
-      }
-      if (!medications || !medications.resourceType || medications.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Medications resource missing or invalid' }, 400);
-      }
-      if (!allergies || !allergies.resourceType || allergies.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Allergies resource missing or invalid' }, 400);
-      }
-
-      // Extract patient details
-      const firstName = patient.name?.[0]?.given?.[0] || 'Patient';
-      const lastName = patient.name?.[0]?.family || '';
-
-      // Extract conditions
-      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text)
-        .filter(Boolean) || [];
-
-      // Extract medications
-      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text)
-        .filter(Boolean) || [];
-
-      // Extract allergies
-      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text)
-        .filter(Boolean) || [];
-
-      // Define common source, suggestions, and links
-      const commonSource = {
-        label: 'Patient Greeter Service',
-        url: 'https://example.com',
-        icon: 'https://example.com/icon.png',
-      };
-
-      const commonSuggestions = [
-        {
-          label: 'View Patient History',
-          actions: [
-            {
-              type: 'create',
-              description: 'Open the patient history report.',
-              resource: {
-                resourceType: 'DiagnosticReport',
-                status: 'final',
-                code: { text: 'Patient History' },
-                subject: { reference: `Patient/${body.context.patientId}` },
-              },
-            },
-          ],
-        },
-      ];
-
-      const commonLinks = [
-        { label: 'Google', url: 'https://google.com', type: 'absolute' },
-        { label: 'Launch Pnemocia Diagnosis App', url: 'http://localhost:4434/launch', type: 'smart' },
-      ];
-
-      const cards = [
-        {
-          summary: `Dai, ${firstName} ${lastName}`,
-          indicator: 'info',
-          detail: 'You have pnemonia based on ChatGPT',
-          source: commonSource,
-          suggestions: commonSuggestions,
-          links: commonLinks,
-        },
-      ];
-
-      if (activeConditions.length > 0) {
-        cards.push({
-          summary: 'Active Conditions',
-          indicator: 'warning',
-          detail: `The patient has the following active conditions: ${activeConditions.join(', ')}.`,
-          source: {
-            label: 'Conditions CDS Service',
-            url: 'https://example.com/conditions',
-            icon: 'https://example.com/conditions-icon.png',
-          },
-          suggestions: commonSuggestions,
-          links: commonLinks,
-        });
-      }
-
-      if (activeMedications.length > 0) {
-        cards.push({
-          summary: 'Active Medications',
-          indicator: 'info',
-          detail: `The patient is currently taking: ${activeMedications.join(', ')}.`,
-          source: {
-            label: 'Medications CDS Service',
-            url: 'https://example.com/medications',
-            icon: 'https://example.com/medications-icon.png',
-          },
-          suggestions: commonSuggestions,
-          links: commonLinks,
-        });
-      }
-
-      if (patientAllergies.length > 0) {
-        cards.push({
-          summary: 'Allergies',
-          indicator: 'info',
-          detail: `The patient has allergies to: ${patientAllergies.join(', ')}.`,
-          source: {
-            label: 'Allergies CDS Service',
-            url: 'https://example.com/allergies',
-            icon: 'https://example.com/allergies-icon.png',
-          },
-          suggestions: commonSuggestions,
-          links: commonLinks,
-        });
-      }
-
-      logger.info({ cards }, 'Sending CDS Hook Response:');
-      return c.json({ cards });
-
-    } else if (id === 'clinical-recommendations') {
-      // Validate and extract required prefetch data for clinical recommendations
-      const { patient, conditions, medications, allergies } = body.prefetch;
-
-      if (!patient || !patient.resourceType || patient.resourceType !== 'Patient') {
-        return c.json({ error: 'Invalid prefetch data: Patient resource missing or invalid' }, 400);
-      }
-      if (!conditions || !conditions.resourceType || conditions.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Conditions resource missing or invalid' }, 400);
-      }
-      if (!medications || !medications.resourceType || medications.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Medications resource missing or invalid' }, 400);
-      }
-      if (!allergies || !allergies.resourceType || allergies.resourceType !== 'Bundle') {
-        return c.json({ error: 'Invalid prefetch data: Allergies resource missing or invalid' }, 400);
-      }
-
-      const activeConditions = conditions.entry?.map((entry: { resource: { code: { text: any; }; }; }) => entry.resource?.code?.text)
-        .filter(Boolean) || [];
-      const activeMedications = medications.entry?.map((entry: { resource: { medicationCodeableConcept: { text: any; }; }; }) => entry.resource?.medicationCodeableConcept?.text)
-        .filter(Boolean) || [];
-      const patientAllergies = allergies.entry?.map((entry: { resource: { substance: { text: any; }; }; }) => entry.resource?.substance?.text)
-        .filter(Boolean) || [];
-
-      const response = {
-        cards: [
+        links: [
           {
-            summary: 'Clinical Recommendations',
-            indicator: 'info',
-            detail: `The patient has the following active conditions: ${activeConditions.join(', ')}.`,
-            source: {
-              label: 'Clinical Recommendations Service',
-              url: 'https://example.com/clinical',
-              icon: 'https://example.com/clinical-icon.png',
-            },
-            suggestions: [],
-            links: [],
-          },
+            label: 'Launch IBS Care Dashboard',
+            url: 'https://ibscare-app.limogi.ai/launch',
+            type: 'smart',
+          }
         ],
-      };
+      });
 
-      return c.json(response);
-    } else {
-      return c.json({ error: 'Service not found' }, 404);
+      // Add Lab Tests Card for moderate/severe cases
+      if (assessment.suggestedLabTests && assessment.suggestedLabTests.length > 0) {
+        cards.push({
+          summary: 'Recommended Laboratory Tests',
+          indicator: severityLevel === 'severe' ? 'critical' : 'warning',
+          detail: `Suggested tests to rule out other conditions:\n${assessment.suggestedLabTests.join('\n')}`,
+          source: {
+            label: 'IBS Clinical Decision Support',
+            url: 'https://ibscare.limogi.ai',
+            icon: 'https://ibscare.limogi.ai/icon.png',
+          }
+        });
+      }
+
+      // Add Recommendations Card for moderate/severe cases
+      if (assessment.recommendations && assessment.recommendations.length > 0) {
+        cards.push({
+          summary: 'Clinical Recommendations',
+          indicator: severityLevel === 'severe' ? 'critical' : 'warning',
+          detail: assessment.recommendations.join('\n'),
+          source: {
+            label: 'IBS Clinical Decision Support',
+            url: 'https://ibscare.limogi.ai',
+            icon: 'https://ibscare.limogi.ai/icon.png',
+          }
+        });
+      }
     }
+
+    logger.info({ cards }, 'Sending IBS Assessment CDS Cards:');
+    return c.json({ cards });
+
   } catch (error) {
     logger.error({ error }, 'Error in hook route:');
     return c.json({ error: 'Internal Server Error' }, 500);
