@@ -43,6 +43,24 @@ bun --version
    ```
 
 ---
+## TO CHANGE THIS
+
+## Create a new container with explicit environment variables
+docker run -d \
+  --name ibs-care-db \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=secret \
+  -e POSTGRES_DB=ibs_care_db \
+  -v $(pwd)/src/database/init.sql:/docker-entrypoint-initdb.d/init.sql \
+  -p 5434:5432 \
+  postgres:15
+
+docker exec -it ibs-care-db psql -U admin -d ibs_care_db -c "\d ibs_analysis"
+
+docker run -d \
+  --name ibs-care-redis \
+  -p 6379:6379 \
+  redis:latest
 
 ### 🚀 **Running the Server**
 
