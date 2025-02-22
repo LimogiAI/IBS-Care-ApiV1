@@ -1,11 +1,40 @@
 services:
   ibs-care-api:
-    image: ghcr.io/limogiai/ibs-care-api:latest
+    build: .
     container_name: ibs-care-api
     ports:
-      - "4433:4433"  # Maps host port 4433 to container port 4433
+      - "4433:4433"
     environment:
       NODE_ENV: production
       PORT: 4433
+      PG_HOST: ibs-care-db
+      PG_USER: admin
+      PG_PASSWORD: secret
+      PG_DATABASE: ibs_care_db
+      REDIS_HOST: ibs-care-redis
+      REDIS_PORT: 6379
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
     restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: ibs-care-db
+    environment:
+      POSTGRES_DB: ibs_care_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5434:5432"
+
+  redis:
+    image: redis:latest
+    container_name: ibs-care-redis
+    ports:
+      - "6379:6379"
+
+networks:
+  default:
+    driver: bridge
