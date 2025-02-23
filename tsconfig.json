@@ -2,6 +2,17 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
-  }
+    "jsxImportSource": "hono/jsx",
+    "skipLibCheck": true,
+    "lib": ["ESNext"],
+    "types": ["bun"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "noEmit": true  // This prevents tsc from generating .js files
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

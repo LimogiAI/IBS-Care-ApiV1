@@ -2,6 +2,7 @@
 
 import { config } from "../../config";
 import { IBSAssessmentShort, ProcessedFHIRData } from "../types/ibs";
+import { OpenAIResponse } from '../types/openai';
 import { getDefaultAssessmentShort } from "../utils/defaultAssessmentsShort";
 
 import logger from "../utils/logger";
@@ -64,9 +65,8 @@ export async function shortIBSAssessment(
             logger.info(`OpenAI x-request-id: ${requestId}`);
         }
 
-        const data = await response.json();
-        logger.info({ data }, "Open AI response FHIR")
-        const rawContent = data?.choices?.[0]?.message?.content;
+        const data = (await response.json()) as OpenAIResponse;
+        const rawContent = data.choices[0]?.message?.content;
 
         let assessment: IBSAssessmentShort;
         try {

@@ -1,6 +1,7 @@
 // src/services/ibsAssessmentService.ts
 import { config } from "../../config";
 import { IBSAssessment, ProcessedFHIRData } from "../types/ibs";
+import { OpenAIResponse } from '../types/openai';
 import { getDefaultAssessment } from "../utils/defaultAssessments";
 import logger from "../utils/logger";
 import { TimeoutError, timeoutPromise } from "../utils/timeout";
@@ -64,8 +65,8 @@ export async function evidenceBasedIBSAssessment(
       logger.info(`OpenAI x-request-id: ${requestId}`);
     }
 
-    const data = await response.json();
-    const rawContent = data?.choices?.[0]?.message?.content;
+    const data = (await response.json()) as OpenAIResponse;
+    const rawContent = data.choices[0]?.message?.content;
 
     let assessment: IBSAssessment;
     try {
