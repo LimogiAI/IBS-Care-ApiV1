@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import logger from "../utils/logger";
-import { evidenceBasedIBSAssessment } from "../services/ibsAssessmentService";
+import { evidenceBasedIBSAssessment, predictIBSOutcome } from "../services/ibsAssessmentService";
 
 export const analysisRouter = new Hono();
 
@@ -27,60 +27,22 @@ analysisRouter.post("/evidence-based", async (c) => {
 });
 
 
-//predicticitve based comprehensive analysis
-// analysisRouter.post('/predective-based', async (c) => {
-//     try {
-//         const body = await c.req.json();
-//         const { patientId, fhirData } = body;
+analysisRouter.post("/predictability-ai", async (c) => {
+    try {
+        const requestData = await c.req.json();
 
-//         if (!patientId || !fhirData) {
-//             return c.json({ error: 'Invalid request data' }, 400);
-//         }
+        if (!requestData || !requestData.fhirData || !requestData.qolResponses) {
+            logger.warn("Missing required input data (FHIR or QoL responses)");
+            return c.json({ error: "FHIR data and QoL responses are required" }, 400);
+        }
 
-//         logger.info(`Processing IBS Analysis for Patient: ${patientId}`);
+        logger.info("Received data for IBS predictability analysis");
+        const prediction = await predictIBSOutcome(requestData.fhirData, requestData.qolResponses);
 
-//         // AI-based IBS prediction
-//         const assessment = await evidenceBasedIBSRisk(fhirData);
-
-//         // Save in PostgreSQL
-//         const query = `
-//             INSERT INTO ibs_analysis (
-//                 patient_id,
-//                 overall_summary,
-//                 clinical_assessment,
-//                 missing_information,
-//                 clinical_recommendations,
-//                 reliability_assessment
-//             )
-//             VALUES ($1, $2, $3, $4, $5, $6)
-//             RETURNING *;
-//         `;
-
-//         const values = [
-//             patientId,
-//             assessment.overallNarrativeSummary,
-//             assessment.clinicalAssessment,
-//             assessment.missingInformation,
-//             assessment.clinicalRecommendations,
-//             assessment.reliabilityAssessment
-//         ];
-
-//         const result = await db.query(query, values);
-//         const savedAnalysis = result.rows[0];
-
-//         // Cache result for quick retrieval
-//         await redis.set(
-//             `ibs-analysis:${patientId}`,
-//             JSON.stringify(savedAnalysis),
-//             'EX',
-//             3600 // 1 hour expiration
-//         );
-
-//         logger.info(`Successfully saved analysis for patient: ${patientId}`);
-//         return c.json(savedAnalysis);
-
-//     } catch (error) {
-//         logger.error('Error in IBS analysis:', error);
-//         return c.json({ error: 'Internal Server Error' }, 500);
-//     }
-// });
+        logger.info("Returning IBS predictability AI result");
+        return c.json(prediction, 200);
+    } catch (error) {
+        logger.error({ error }, "Error processing IBS predictability AI analysis");
+        return c.json({ error: "Internal Server Error" }, 500);
+    }
+});
