@@ -18,7 +18,7 @@ export interface AppConfig {
   userContent3: string;
   cdsHookSysContent: string;
   cdsHookUserContent1: string;
-  cdsHookUserContent3: string;
+  // cdsHookUserContent3: string;
   sysContentPredictability: string;
   userContentPredictability: string;
 }
@@ -51,7 +51,7 @@ export const config: AppConfig = {
 
   cdsHookSysContent: process.env.CDS_HOOK_SYS_CONTENT || '',
   cdsHookUserContent1: process.env.CDS_HOOK_USER_CONTENT1 || '',
-  cdsHookUserContent3: process.env.CDS_HOOK_USER_CONTENT3 || '',
+  // cdsHookUserContent3: process.env.CDS_HOOK_USER_CONTENT3 || '',
 
   sysContentPredictability: process.env.SYS_CONTENT_PREDICTABILITY || '',
   userContentPredictability: process.env.USER_CONTENT_PREDICTABILITY || '',
