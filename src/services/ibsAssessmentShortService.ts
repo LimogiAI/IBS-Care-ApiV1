@@ -1,5 +1,4 @@
 // src/services/ibsAssessmentShortService.ts
-
 import { config } from "../../config";
 import { IBSAssessmentShort, ProcessedFHIRData } from "../types/ibs";
 import { OpenAIResponse } from '../types/openai';
@@ -21,7 +20,7 @@ export async function shortIBSAssessment(
         },
         {
             role: "user",
-            content: `${config.cdsHookUserContent3} ${JSON.stringify(fhirData, null, 2)}`
+            content: `${config.cdsHookUserContent} ${JSON.stringify(fhirData, null, 2)}`
         }
     ];
 
