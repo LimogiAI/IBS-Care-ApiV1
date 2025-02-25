@@ -19,6 +19,8 @@ export interface AppConfig {
   cdsHookSysContent: string;
   cdsHookUserContent1: string;
   cdsHookUserContent3: string;
+  sysContentPredictability: string;
+  userContentPredictability: string;
 }
 
 function loadEnv(key: string, defaultValue?: string): string {
@@ -51,5 +53,7 @@ export const config: AppConfig = {
   cdsHookUserContent1: process.env.CDS_HOOK_USER_CONTENT1 || '',
   cdsHookUserContent3: process.env.CDS_HOOK_USER_CONTENT3 || '',
 
+  sysContentPredictability: process.env.SYS_CONTENT_PREDICTABILITY || '',
+  userContentPredictability: process.env.USER_CONTENT_PREDICTABILITY || '',
   // ...
 };

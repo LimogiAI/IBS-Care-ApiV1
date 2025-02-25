@@ -1,5 +1,5 @@
 // src/utils/defaultAssessments.ts
-import { IBSAssessment } from "../types/ibs";
+import { IBSAssessment, PredictabilityResponse } from "../types/ibs";
 
 export function getDefaultAssessment(): IBSAssessment {
   return {
@@ -68,5 +68,24 @@ export function getDefaultAssessment(): IBSAssessment {
       limitingFactors: ["System error"],
       confidenceLevel: "Low",
     },
+  };
+}
+
+// Default response for IBS Predictability AI
+export function getDefaultPredictabilityResponse(): PredictabilityResponse {
+  return {
+    predictabilitySummary: "Unable to determine IBS progression at this time due to system error.",
+    symptomTrend: {
+      abdominalPain: "Stable",
+      bloating: "Stable",
+      diarrhea: "Stable",
+      constipation: "Stable",
+    },
+    riskFactors: ["Insufficient data for analysis"],
+    recommendations: {
+      lifestyleChanges: ["Consult a healthcare provider for further assessment"],
+      followUpAssessments: ["Reattempt assessment with complete data"],
+    },
+    confidenceLevel: "Low",
   };
 }
