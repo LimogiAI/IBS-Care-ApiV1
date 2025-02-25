@@ -1,10 +1,11 @@
 // src/cds/hooks.ts
 import { Hono } from "hono";
-import { config } from "../../config";
+
 import logger from "../utils/logger";
 import { IBSAssessmentShort } from "../types/ibs";
 import { processFHIRResources } from "../utils/processFHIRResources";
 import { shortIBSAssessment } from "../services/ibsAssessmentShortService";
+import { config } from "../../config";
 
 export const hooksRouter = new Hono();
 
@@ -60,8 +61,7 @@ hooksRouter.post('/:id', async (c) => {
       cards.push({
         summary: `${summaryEmoji} IBS Risk Assessment Overview`,
         indicator: "info",
-        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **.  
-        ➤ IBS Sub Type:- ${assessment?.ibsSubtype || 'Not Available'}.
+        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **.
         ➤ Reasoning:- ${assessment?.reasoning || 'Not Available'}.
         ➤ Additional Notes:- ${assessment?.notes || 'Consider Launching the App for Detailed Analysis'}.
         ⚠️ *** Disclaimer: *** This assessment is for informational purposes and does not constitute medical advice.  
@@ -86,8 +86,7 @@ hooksRouter.post('/:id', async (c) => {
       cards.push({
         summary: `${summaryEmoji} IBS Risk Assessment Overview`,
         indicator: "warning",
-        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **.  
-        ➤ IBS Sub Type:- ${assessment?.ibsSubtype || 'Not Available'}.
+        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **. 
         ➤ Reasoning:- ${assessment?.reasoning || 'Not Available'}.
         ➤ Additional Notes:- ${assessment?.notes || 'Consider Launching the App for Detailed Analysis'}.
         ⚠️ *** Disclaimer: *** This assessment is for informational purposes and does not constitute medical advice.  
@@ -113,7 +112,6 @@ hooksRouter.post('/:id', async (c) => {
         summary: `${summaryEmoji} IBS Risk Assessment Overview`,
         indicator: "critical",
         detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **.  
-        ➤ IBS Sub Type:- ${assessment?.ibsSubtype || 'Not Available'}.
         ➤ Reasoning:- ${assessment?.reasoning || 'Not Available'}.
         ➤ Additional Notes:- ${assessment?.notes || 'Consider Launching the App for Detailed Analysis'}.
         ⚠️ *** Disclaimer: *** This assessment is for informational purposes and does not constitute medical advice.  
@@ -138,8 +136,7 @@ hooksRouter.post('/:id', async (c) => {
       cards.push({
         summary: `${summaryEmoji} IBS Risk Assessment Overview`,
         indicator: "info",
-        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **.  
-        ➤ IBS Sub Type:- ${assessment?.ibsSubtype || 'Not Available'}.
+        detail: `🩺 ** ${getPatientName(patient)} ${hasMetIBSCriteria} **. 
         ➤ Reasoning:- ${assessment?.reasoning || 'Not Available'}.
         ➤ Additional Notes:- ${assessment?.notes || 'Consider Launching the App for Detailed Analysis'}.
         ⚠️ *** Disclaimer: *** This assessment is for informational purposes and does not constitute medical advice.  

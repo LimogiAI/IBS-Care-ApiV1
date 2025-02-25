@@ -69,7 +69,6 @@ export interface IBSAssessment {
 
 export interface IBSAssessmentShort {
     meetsIBSCriteria: boolean;
-    ibsSubtype: "IBS-C" | "IBS-D" | "IBS-M" | "IBS-U" | "UNDETERMINED";
     reasoning: string;
     severityLevel: "mild" | "moderate" | "severe" | "undetermined";
     notes?: string;

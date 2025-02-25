@@ -21,7 +21,7 @@ export async function evidenceBasedIBSAssessment(
     },
     {
       role: "user",
-      content: `${config.userContent} ${JSON.stringify(fhirData, null, 2)}`
+      content: `Here is the data extracted from FHIR bundle: ${JSON.stringify(fhirData)}`
     }
   ];
   logger.info({messages}, "Prompt message for Comprehesive Assessment" )
@@ -67,7 +67,7 @@ export async function evidenceBasedIBSAssessment(
 
     const data = (await response.json()) as OpenAIResponse;
     const rawContent = data.choices[0]?.message?.content;
-
+    logger.info({ rawContent }, "Analysis from AI");
     let assessment: IBSAssessment;
     try {
       assessment = JSON.parse(rawContent);
