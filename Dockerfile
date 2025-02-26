@@ -3,7 +3,7 @@ FROM oven/bun:latest
 
 # Metadata
 LABEL maintainer="Nas <nas@limogi.ai>"
-LABEL version="1.2.0"
+LABEL version="1.1.0"
 LABEL description="IBS Care API V1 powered by Hono and Bun"
 
 # Set the working directory
@@ -13,11 +13,13 @@ WORKDIR /app
 COPY package.json bun.lock tsconfig.json ./
 COPY src ./src
 
+# Set environment to production
+ENV NODE_ENV=production
 
-# Install dependencies
-RUN bun install --production
+# Install production dependencies only
+RUN bun install
 
-# Expose the port defined in the container (4433 by default)
+# Expose the port
 EXPOSE 4433
 
 # Start the server

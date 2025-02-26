@@ -1,11 +1,10 @@
 // src/cds/hooks.ts
 import { Hono } from "hono";
-
 import logger from "../utils/logger";
 import { IBSAssessmentShort } from "../types/ibs";
 import { processFHIRResources } from "../utils/processFHIRResources";
 import { shortIBSAssessment } from "../services/ibsAssessmentShortService";
-import { config } from "../../config";
+import { config } from "../config";
 
 export const hooksRouter = new Hono();
 

@@ -1,10 +1,25 @@
 services:
   ibs-care-api:
-    image: ghcr.io/limogiai/ibs-care-api:latest
+    image: ibs-care-api:v1.1.0
+    # image: ghcr.io/limogiai/ibs-care-api:latest
     ports:
       - "4433:4433"
-    environment:
-      - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - .env
+    # environment:
+    #   - NODE_ENV=${NODE_ENV}
+    #   - PORT=${PORT}
+    #   - EHR_LAUNCH_APP_BASE_URL=${EHR_LAUNCH_APP_BASE_URL}
+    #   - OPENAI_API_URL=${OPENAI_API_URL}
+    #   - OPENAI_API_KEY=${OPENAI_API_KEY}
+    #   - OPENAI_MODEL=${OPENAI_MODEL}
+    #   - DEFAULT_MAX_TOKENS=${DEFAULT_MAX_TOKENS}
+    #   - DEFAULT_TEMPERATURE=${DEFAULT_TEMPERATURE}
+    #   - API_TIMEOUT=${API_TIMEOUT}
+    #   - MAX_RETRIES=${MAX_RETRIES}
+    #   - CDS_HOOK_SYS_CONTENT=${CDS_HOOK_SYS_CONTENT}
+    #   - CDS_HOOK_USER_CONTENT=${CDS_HOOK_USER_CONTENT}
+    #   - SYS_CONTENT=${SYS_CONTENT}
+    #   - SYS_CONTENT_PREDICTABILITY=${SYS_CONTENT_PREDICTABILITY}
+    #   - USER_CONTENT_PREDICTABILITY=${USER_CONTENT_PREDICTABILITY}
     restart: always

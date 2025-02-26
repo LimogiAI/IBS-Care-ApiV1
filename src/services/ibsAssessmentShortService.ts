@@ -1,5 +1,5 @@
 // src/services/ibsAssessmentShortService.ts
-import { config } from "../../config";
+import { config } from "../config";
 import { IBSAssessmentShort, ProcessedFHIRData } from "../types/ibs";
 import { OpenAIResponse } from '../types/openai';
 import { getDefaultAssessmentShort } from "../utils/defaultAssessmentsShort";

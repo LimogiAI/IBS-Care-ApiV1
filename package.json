@@ -7,6 +7,7 @@
     "build": "bun build src/index.ts --outdir dist"
   },
   "dependencies": {
+    "@types/bun": "^1.2.3",
     "hono": "^4.6.20",
     "openai": "^4.85.3",
     "pino": "^9.6.0"

@@ -1,5 +1,6 @@
 // src/services/ibsAssessmentService.ts
-import { config } from "../../config";
+
+import { config } from "../config";
 import { IBSAssessment, ProcessedFHIRData, PredictabilityResponse } from "../types/ibs";
 import { OpenAIResponse } from '../types/openai';
 import { getDefaultAssessment, getDefaultPredictabilityResponse } from "../utils/defaultAssessments";

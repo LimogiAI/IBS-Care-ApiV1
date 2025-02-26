@@ -4,12 +4,13 @@ import { discoveryRouter } from './cds/discovery';
 import { hooksRouter } from './cds/hooks';
 import { analysisRouter } from './routes/analysis';
 import logger from './utils/logger';
+import { config } from './config';
 
 const app = new Hono();
 
 // CORS middleware - add this before other middleware
 app.use('*', cors({
-  origin: ['http://localhost:4434'], // Replace with your frontend URL
+  origin: [`${config.ehrLaunchAppBaseUrl}`], // Replace with your frontend URL
   allowMethods: ['POST', 'GET', 'OPTIONS'],
   allowHeaders: ['Content-Type'],
   credentials: true,

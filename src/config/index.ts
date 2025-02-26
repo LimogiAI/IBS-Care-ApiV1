@@ -1,5 +1,6 @@
 // src/config/index.ts
-import logger from "../src/utils/logger";
+
+import logger from "../utils/logger";
 
 export interface AppConfig {
   nodeEnv: string;
