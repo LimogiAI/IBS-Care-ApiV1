@@ -1,16 +1,16 @@
 # Use Bun's official slim image as the base
-FROM oven/bun:1.0.25-slim
+FROM oven/bun:latest
 
 # Metadata
 LABEL maintainer="Nas <nas@limogi.ai>"
-LABEL version="1.0.0"
+LABEL version="1.2.0"
 LABEL description="IBS Care API V1 powered by Hono and Bun"
 
 # Set the working directory
 WORKDIR /app
 
 # Copy project files
-COPY package.json bun.lockb tsconfig.json ./
+COPY package.json bun.lock tsconfig.json ./
 COPY src ./src
 
 
