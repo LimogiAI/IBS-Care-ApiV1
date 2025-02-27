@@ -21,10 +21,9 @@ discoveryRouter.get('/', (c) => {
                     diagnosticreport: "DiagnosticReport?patient={{context.patientId}}",
                     questionnaire: "Questionnaire?patient={{context.patientId}}",
                     questionnaireresponse: "QuestionnaireResponse?patient={{context.patientId}}",
-                    // ✅ NEWLY ADDED RESOURCES FOR DIFFERENTIAL DIAGNOSIS
-                    "medications": "MedicationRequest?patient={{context.patientId}}",
-                    "procedures": "Procedure?patient={{context.patientId}}",
-                    "allergies": "AllergyIntolerance?patient={{context.patientId}}",
+                    medications: "MedicationRequest?patient={{context.patientId}}",
+                    procedures: "Procedure?patient={{context.patientId}}",
+                    allergies: "AllergyIntolerance?patient={{context.patientId}}",
                 },
             },
         ];

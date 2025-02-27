@@ -17,6 +17,8 @@ hooksRouter.post('/:id', async (c) => {
     if (!body.hook || !body.hookInstance || !body.context || !body.prefetch) {
       return c.json({ error: 'Invalid request: Missing required fields' }, 400);
     }
+    const bodyContext = body.context
+    logger.info({ bodyContext}, 'body.context');
 
     if (id !== 'ibs-risk-assessment') {
       return c.json({ error: 'Service not found' }, 404);

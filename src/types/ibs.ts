@@ -123,7 +123,10 @@ export interface ProcessedFHIRData {
         questionnaireResponses?: Array<{
             id?: string;
             questionnaireId?: string;
-            responses?: Array<{ question?: string; answer?: string }>;
+            responses: Array<{
+                question: string;
+                answer?: string | boolean | number; // Adjust based on your needs
+            }>;
         }>;
         medications?: Array<{
             id?: string;
